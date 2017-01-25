@@ -7,10 +7,16 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.json.Json;
+import javax.json.stream.JsonParser;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -159,29 +165,53 @@ public class MediaDownloader {
         sources.add(source);
     }
     
-    static void addSources(MediaDownloader downloader){
-        downloader.addSource(new RSSSource(
-                "http://www.aif.by/rss/all.php",
-                "Test\\AIF",
-                "aif_",
-                "yandex:full-text"));
-        downloader.addSource(new RSSSource(
-                "http://izvestia.ru/xml/rss/all.xml",
-                "Test\\Izvestia",
-                "izv",
-                "description"));
-        downloader.addSource(new RSSSource(
-                "https://news.tut.by/rss/pda/all.rss",
-                "Test\\TUTBY",
-                "tutby_",
-                "description"
-        ));
+    static void addSources(MediaDownloader downloader, String configPath){
+    	BufferedReader config = null;
+    	try {
+			config = new BufferedReader(new FileReader(new File(configPath)));
+		} catch (FileNotFoundException e) {
+			log.error("Can not read config file:\n" + e);
+		}
+    	
+    	if(config != null){
+    		
+    		ArrayList<RSSSource> sources = new ArrayList<RSSSource>();
+    		StringBuilder jsonConfig = new StringBuilder();
+        	String temp = null;
+        	
+        	JsonParser parser = Json.createParser(config);
+        	if(parser.hasNext()){//config is not empty
+        		if(parser.next() == JsonParser.Event.START_ARRAY){//valid RSSSource array
+        			while(parser.next() == JsonParser.Event.START_OBJECT){
+        				String currentKey = null;
+        				String source = null, directory = null, prefix = null, contentTag = null;
+        				if(parser.next() == JsonParser.Event.KEY_NAME) currentKey = parser.getString(); else continue;
+        				if(currentKey.equals("source") && parser.next() == JsonParser.Event.VALUE_STRING) source = parser.getString();
+        				if(parser.next() == JsonParser.Event.KEY_NAME) currentKey = parser.getString();
+        				if(currentKey.equals("directory") && parser.next() == JsonParser.Event.VALUE_STRING) directory = parser.getString();
+        				if(parser.next() == JsonParser.Event.KEY_NAME) currentKey = parser.getString();
+        				if(currentKey.equals("prefix") && parser.next() == JsonParser.Event.VALUE_STRING) prefix = parser.getString();
+        				if(parser.next() == JsonParser.Event.KEY_NAME) currentKey = parser.getString();
+        				if(currentKey.equals("content_tag") && parser.next() == JsonParser.Event.VALUE_STRING) contentTag = parser.getString();
+        				
+        				if(source == null || directory == null || prefix == null || contentTag == null) continue; // wrong array element
+        				sources.add(new RSSSource(source, directory, prefix, contentTag));
+        				parser.next(); //skip END_OBJECT
+        			}
+        		}
+        	}
+        	for(int i=0;i<sources.size();i++) {
+        		log.debug("Source " + sources.get(i).getSource().toString() + " added.");
+        		downloader.addSource(sources.get(i));
+        	}
+    	}
     }
     
     public static void main(String[] args) {
     	org.apache.log4j.PropertyConfigurator.configure("log4j.properties");
         MediaDownloader downloader = new MediaDownloader();
-        addSources(downloader);
+        addSources(downloader, args[0]);
         downloader.startMonitoring();
+    	
     }
 }

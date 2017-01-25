@@ -1,0 +1,16 @@
+[{
+	"source": "http://www.aif.by/rss/all.php",
+	"directory": "Test\\AIF",
+	"prefix": "aif_",
+	"content_tag": "yandex:full-text"
+}, {
+	"source": "http://izvestia.ru/xml/rss/all.xml",
+	"directory": "Test\\Izvestia",
+	"prefix": "izv_",
+	"content_tag": "description"
+}, {
+	"source": "https://news.tut.by/rss/pda/all.rss",
+	"directory": "Test\\TUTBY",
+	"prefix": "tutby_",
+	"content_tag": "description"
+}]
