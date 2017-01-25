@@ -145,7 +145,7 @@ public class MediaDownloader {
         return replacementBuf.toString();
     }
     
-    void startMonitoring(){
+    public void startMonitoring(){
         try{
             db = dbf.newDocumentBuilder();
         }catch(ParserConfigurationException e){
